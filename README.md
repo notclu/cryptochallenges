@@ -1,4 +1,4 @@
 cryptochallenges
 ================
 
-Solutions to the cryptopals.com challenges
+Solutions to the http://cryptopals.com challenges
