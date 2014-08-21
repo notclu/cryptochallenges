@@ -190,7 +190,7 @@ def get_likely_xor_keysizes(ciphertext, number_of_keysizes=1):
     """Return the most likely repeating keysize for a ciphertext encrypted with
        a repeating key XOR.
 
-    This is a helper function for break_repeating_key_xor used  tonarrow down
+    This is a helper function for break_repeating_key_xor used further down
     the list of key sizes we need to try.
 
     ARGS:
@@ -294,7 +294,7 @@ def detect_aes_ecb(hexstring_list):
     ARGS:
         hexstring_list: A list of strings to search for AES 128 ECB encrypted blocks
     RETURNS:
-        A list of indicies of strings that are likly encryptedd with AES 128 ECB
+        A list of indices of strings that are likely encrypted with AES 128 ECB
 
     >>> detect_aes_ecb(open('test_data/1_8.txt','r').read().splitlines())
     [132]
