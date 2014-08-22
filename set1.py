@@ -6,58 +6,8 @@ Author: Clu (notclu@gmail.com)
 
 import string
 import M2Crypto
+from cc_util import hexstring_to_bytelist, chunks, get_hamming_distance
 
-# Helper functions
-def chunks(data, chunk_size, adv=None):
-    """ Yield successive chunk_size'd chunks from data.
-
-    Args:
-        data: Data to split into chunks
-        chunk_size: Number of elements per chunk
-        adv: Number of elements between chunks
-
-    Returns:
-        A generate that will yield chunk_size'd chunks from data
-
-    >>> list(chunks('aa00bb00cc00', 2, 4))
-    ['aa', 'bb', 'cc']
-    """
-    if not adv:
-        adv = chunk_size
-
-    for i in xrange(0, len(data), adv):
-        yield data[i:i+chunk_size]
-
-def hexstring_to_bytelist(hexstring):
-    """Split a hexstring, by Byte, into a list of integers
-
-    Args:
-        hexstring: Hex encoded string to split
-    Returns:
-        A list of integers representing the bytes in the hexstring
-
-    >>> hexstring_to_bytelist('01020304050a0b0c0d10')
-    [1, 2, 3, 4, 5, 10, 11, 12, 13, 16]
-    """
-    return [int(byte, 16) for byte in chunks(hexstring, 2)]
-
-def get_hamming_distance(string_a, string_b):
-    """Returns the number of bits that differ between two strings
-
-    Args:
-        string_a: First string to compare
-        string_b: Second string to compare
-    Returns:
-        The number of bits that differ between string_a and string_b
-
-    >>> get_hamming_distance('this is a test', 'wokka wokka!!!')
-    37
-    """
-
-    a_int = int(string_a.encode('hex'), 16)
-    b_int = int(string_b.encode('hex'), 16)
-
-    return bin(a_int ^ b_int).count('1')
 
 def hex_to_base64(hexstring):
     """Converts a hex string to a base64 string
@@ -73,6 +23,7 @@ def hex_to_base64(hexstring):
     'SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t'
     """
     return hexstring.decode('hex').encode('base64').strip()
+
 
 def xor_hexstring(string_a, string_b):
     """Preform an XOR between two hexstrings
@@ -95,6 +46,7 @@ def xor_hexstring(string_a, string_b):
     # Strip of the 0x and L
     return result_string[2:-1]
 
+
 def single_byte_xor_break(hexstring):
     """Try to decrypt a hex strings that has been encrypted with a one Byte key
 
@@ -111,22 +63,24 @@ def single_byte_xor_break(hexstring):
     """
     hexstring_bytes = hexstring_to_bytelist(hexstring)
 
-
     # Try every byte counting the number of letters for each decrypt
-    best_guess_num_letters = 0
+    best_guess_num_letters = None
+    best_guess = None
+    best_guess_key = None
 
     for i in xrange(0, 255):
         decrypt = [chr(byte ^ i) for byte in hexstring_bytes]
         num_letters = sum(1 for c in decrypt if c.isalpha() or c.isspace())
 
-        # We'll assumethe guess that decrypts to the maximum number
+        # We'll assume the guess that decrypts to the maximum number
         # of letters is the correct guess
         if num_letters > best_guess_num_letters:
             best_guess_num_letters = num_letters
             best_guess = ''.join(decrypt)
             best_guess_key = i
 
-    return (best_guess_key, best_guess)
+    return best_guess_key, best_guess
+
 
 def detect_single_char_xor(hexstrings_list):
     """Try to find a single byte xor in a list of hexstrings
@@ -159,6 +113,7 @@ def detect_single_char_xor(hexstrings_list):
 
     return best_guess.strip()
 
+
 def repeating_key_xor_encrypt(plaintext, key):
     """XOR encrypt a string with a repeating key
 
@@ -185,6 +140,7 @@ def repeating_key_xor_encrypt(plaintext, key):
 
     # Return a hex encoded string
     return ''.join('%02x' % byte for byte in ciphertext)
+
 
 def get_likely_xor_keysizes(ciphertext, number_of_keysizes=1):
     """Return the most likely repeating keysize for a ciphertext encrypted with
@@ -221,6 +177,7 @@ def get_likely_xor_keysizes(ciphertext, number_of_keysizes=1):
     normalized_distances.sort(key=lambda x: x[1])
 
     return [i[0] for i in normalized_distances[:number_of_keysizes]]
+
 
 def break_repeating_key_xor(ciphertext):
     """Try to break a ciphertext encrypted with a repeating key XOR
@@ -267,24 +224,32 @@ def break_repeating_key_xor(ciphertext):
     # Unable to find a valid decryption
     return None
 
-def aes_ecb_decrypt(ciphertext, key):
-    """Decrypt a string using AES ECB
+
+def aes_ecb(data, key, op='decrypt'):
+    """Encrypt or decrypt a string using AES ECB
 
     This is the solution to Set 1 Challenge 7
 
     ARGS:
-        ciphertext: The ciphertext to decrypt
+        data: The data to encrypt or decrypt
         key: The AES key to decrypt with
+        op: The operation to perform ('decrypt' or 'encrypt')
     RETURNS:
         The AES-128 ECB decrypted plaintext
 
-    >>> aes_ecb_decrypt(open('test_data/1_7.txt','r').read().decode('base64'), 'YELLOW SUBMARINE')[:66]
+    >>> aes_ecb(open('test_data/1_7.txt','r').read().decode('base64'), 'YELLOW SUBMARINE')[:66]
     "I'm back and I'm ringin' the bell \\nA rockin' on the mike while the"
     """
-    decryption_op = 0
+    if op == 'decrypt':
+        cipher_op = 0
+    elif op == 'encrypt':
+        cipher_op = 1
+    else:
+        raise Exception('Invalid operation')
 
-    ctx = M2Crypto.EVP.Cipher(alg='aes_128_ecb', key=key, iv='\x00', op=decryption_op)
-    return ctx.update(ciphertext) + ctx.final()
+    ctx = M2Crypto.EVP.Cipher(alg='aes_128_ecb', key=key, iv='\x00', op=cipher_op, padding=0)
+    return ctx.update(data) + ctx.final()
+
 
 def detect_aes_ecb(hexstring_list):
     """Determine if any hexstrings provided have been encrypted with AES 128 ECB
@@ -304,18 +269,18 @@ def detect_aes_ecb(hexstring_list):
     for i, hexstring in enumerate(hexstring_list):
         blocks = list(chunks(hexstring, 2*16))
 
-        # Count the number of occurance of each element in the block list
+        # Count the number of occurrence of each element in the block list
         # if the count list is shorter than the block list that means there
         # are duplicate blocks. EX:
         # ['a','b','c'] -> [1,1,1]
         # ['a','b','a'] -> [2,1]
-        block_frequency = {block:blocks.count(block) for block in blocks}
+        block_frequency = {block: blocks.count(block) for block in blocks}
         if len(block_frequency.values()) != len(blocks):
             indexes_that_are_aes_ecb.append(i)
 
     return indexes_that_are_aes_ecb
 
 if __name__ == '__main__':
-    # Run all of the test vectors in the docstrings pulled from cryptopals.com
+    # Run all of the test vectors in the docstrings pulled from http://cryptopals.com
     import doctest
     doctest.testmod(verbose=True)
