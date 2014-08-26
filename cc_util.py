@@ -51,3 +51,7 @@ def string_xor(a, b):
         out += chr(ord(a_byte) ^ ord(b_byte))
 
     return out
+
+
+def round_down(x, base):
+    return x - (x % base)

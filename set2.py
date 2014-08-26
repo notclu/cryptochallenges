@@ -8,7 +8,7 @@ import random
 import os
 import struct
 import set1
-from cc_util import chunks, string_xor
+from cc_util import chunks, string_xor, round_down
 
 
 def pkcs7_pad(message, block_length):
@@ -156,12 +156,38 @@ def get_decryption_oracle(oracle, block_size, short_input):
     return decrypt_oracle
 
 
+def brute_force_ecb_padding(plaintext, block_size, oracle):
+    """Helper function to brute force the PKCS7 padding for the ECB break
+    :param plaintext: The current plaintext guess
+    :param block_size: The block size of the oracle
+    :param oracle: ECB encryption oracle that encrypts AES-128-ECB(your-string || unknown-string, random-key)
+    :return: The correct unknown-string or None on failure to match
+    """
+    last_block_start = round_down(len(plaintext), block_size)
+    expected_ciphertext = oracle('')
+
+    # The plaintext may have padding bytes in it so try padding all slices of the last block
+    # When the encryption of the plaintext + padding matches the encryption of an empty string we know the plaintext
+    # is correct
+    for i in xrange(last_block_start, len(plaintext)):
+        plaintext_guess = plaintext[:i]
+
+        # Now pad it manually since the hidden string will be appended
+        plaintext_guess_w_padding = pkcs7_pad(plaintext_guess, block_size)
+
+        guess_ciphertext = oracle(plaintext_guess_w_padding)[:len(expected_ciphertext)]
+
+        if guess_ciphertext == expected_ciphertext:
+            return plaintext_guess
+
+    return None
+
+
 def break_ecb_encryption(oracle):
     """Break ECB encryption with a chosen plaintext attack
     :param oracle: ECB encryption oracle that encrypts AES-128-ECB(your-string || unknown-string, random-key)
     :return: The unknown-string encrypted by the ECB encryption oracle
     """
-
     block_size = detect_oracle_block_size(oracle)
     mode = detect_aes_mode(oracle)
 
@@ -175,7 +201,7 @@ def break_ecb_encryption(oracle):
     for i in xrange(total_length):
         input_pad = 'A' * (block_size - (i % block_size) - 1)
         short_input = input_pad + plaintext
-        current_block_start = len(short_input) + 1 - block_size
+        current_block_start = round_down(len(short_input), block_size)
 
         decrypt_oracle = get_decryption_oracle(oracle, block_size, short_input)
 
@@ -184,19 +210,11 @@ def break_ecb_encryption(oracle):
         try:
             plaintext += decrypt_oracle[ciphertext]
         except KeyError:
-            # If we're on the last block we will start running into problems with changing padding
+            # If we're on the last block we will start running into problems with changing padding. Just brute force
+            # the padding bytes.
             if (total_length - i) < block_size:
-                for j in xrange(current_block_start, len(plaintext)):
-                    plaintext_guess = plaintext[:j]
-
-                    # Now pad it manually since the hidden string will be appended
-                    plaintext_guess_w_padding = pkcs7_pad(plaintext_guess, block_size)
-
-                    expected_ciphertext = oracle('')
-                    guess_ciphertext = oracle(plaintext_guess_w_padding)[:len(expected_ciphertext)]
-
-                    if guess_ciphertext == expected_ciphertext:
-                        return plaintext_guess
+                plaintext = brute_force_ecb_padding(plaintext, block_size, oracle)
+                break
             else:
                 raise
 
