@@ -27,7 +27,6 @@ def aes_cbc_decrypt(ciphertext, key, iv):
     """ Perform AES CBC decryption
 
     This is the solution to Set 2, Challenge 10
-
     :param ciphertext: The data to  or decrypt
     :param key: The AES key to use
     :param iv: The initialization vector
@@ -45,7 +44,6 @@ def aes_cbc_decrypt(ciphertext, key, iv):
 
 def aes_cbc_encrypt(plaintext, key, iv):
     """ Perform AES CBC encryption, adding PKCS 7 padding as needed
-
     :param plaintext: The data to encrypt
     :param key: The AES key to use
     :param iv: The initialization vector
@@ -64,7 +62,6 @@ def aes_cbc_encrypt(plaintext, key, iv):
 
 def encryption_oracle(plaintext, key=None, prepend=None, append=None, mode=None):
     """ AES encrypt a plaintext using a random key, random padding, and random selection of CBC or ECB mode
-
     :param plaintext: Plaintext to encrypt
     :return: Encrypted plaintext
     """
@@ -95,15 +92,13 @@ def encryption_oracle(plaintext, key=None, prepend=None, append=None, mode=None)
 
 
 class AesMode(object):
+    """An enumeration for AES block modes"""
     ECB = 0
     CBC = 1
 
 
 def detect_aes_mode(encrypt_fn):
     """ Detect if an encryption function is encrypting using ECB mode or CBC mode
-
-    This is the solution to set 2 challenge 11
-
     :param encrypt_fn: Encryption function to submit plaintexts to
     :return: AesMode.ECB or AesMode.CBC
     """
@@ -122,6 +117,7 @@ def detect_aes_mode(encrypt_fn):
 def detect_oracle_block_size(oracle):
     """ Return the block size, in Bytes of a encryption oracle
     :param oracle: Encryption oracle to submit plaintexts to. oracle(plaintext)
+    :return: The block size of the encryption oracle
     """
     first_len = len(oracle('A'))
 
@@ -138,7 +134,6 @@ def detect_oracle_block_size(oracle):
 
 def get_decryption_oracle(oracle, block_size, short_input):
     """Derive a decryption oracle for the last byte in a block
-
     :param oracle: Encryption oracle to submit plaintexts to
     :param block_size: Block size of the encryption oracle
     :param short_input: A plaintext to encrypt that is one byte smaller than a block boundary
@@ -163,8 +158,8 @@ def get_decryption_oracle(oracle, block_size, short_input):
 
 def break_ecb_encryption(oracle):
     """Break ECB encryption with a chosen plaintext attack
-
-    This is the solution to Set 2 Challenge 12
+    :param oracle: ECB encryption oracle that encrypts AES-128-ECB(your-string || unknown-string, random-key)
+    :return: The unknown-string encrypted by the ECB encryption oracle
     """
 
     block_size = detect_oracle_block_size(oracle)
