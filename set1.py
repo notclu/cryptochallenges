@@ -11,33 +11,23 @@ from cc_util import hexstring_to_bytelist, chunks, get_hamming_distance
 
 def hex_to_base64(hexstring):
     """Converts a hex string to a base64 string
-
-    This is the solution to Set 1 Challenge 1.
-
     ARGS:
         hexstring: The hexstring to base64 encode
     RETURNS:
         The base64 encoded representation of the hexstring
 
-    >>> hex_to_base64('49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d')
-    'SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t'
+
     """
     return hexstring.decode('hex').encode('base64').strip()
 
 
 def xor_hexstring(string_a, string_b):
     """Preform an XOR between two hexstrings
-
-    This is the solution to Set 1 Challenge 2.
-
     ARGS:
         string_a: The first hex encoded string
         string_b: The second hex encoded string
     RETURNS:
         The hex encoded XOR of string_a and string_b
-
-    >>> xor_hexstring('1c0111001f010100061a024b53535009181c', '686974207468652062756c6c277320657965')
-    '746865206b696420646f6e277420706c6179'
     """
     num_a = int(string_a, 16)
     num_b = int(string_b, 16)
@@ -46,20 +36,13 @@ def xor_hexstring(string_a, string_b):
     # Strip of the 0x and L
     return result_string[2:-1]
 
-
 def single_byte_xor_break(hexstring):
     """Try to decrypt a hex strings that has been encrypted with a one Byte key
-
-    This is the solution to Set 1 Challenge 3
-
     ARGS:
         hexstring: The hex encoded, one Byte XOR encrypted data to brute force
     RETURNS:
         A tuple containing the key at position 0 and the decrypted string
         at position 1.
-
-    >>> single_byte_xor_break('1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736')
-    (88, "Cooking MC's like a pound of bacon")
     """
     hexstring_bytes = hexstring_to_bytelist(hexstring)
 
@@ -84,16 +67,10 @@ def single_byte_xor_break(hexstring):
 
 def detect_single_char_xor(hexstrings_list):
     """Try to find a single byte xor in a list of hexstrings
-
-    This is the solution to Set 1 Challenge 4
-
     ARGS:
         hexstrings_list: A list of hexstrings to detect XOR encryption in
     RETURNS:
         The best guess decryption of an XOR encrypted string
-
-    >>> detect_single_char_xor(open('test_data/1_4.txt','r').read().splitlines())
-    'Now that the party is jumping'
     """
     best_guess_num_letters = 0
     best_guess = ''
@@ -116,17 +93,11 @@ def detect_single_char_xor(hexstrings_list):
 
 def repeating_key_xor_encrypt(plaintext, key):
     """XOR encrypt a string with a repeating key
-
-    This is the solution to Set 1 Challenge 5
-
     ARGS:
         plaintext: The plaintext string to XOR encrypt
         key: The key to encrypt with
     RETURNS:
         The hex encoded ciphertext
-
-    >>> repeating_key_xor_encrypt("Burning 'em, if you ain't quick and nimble\\nI go crazy when I hear a cymbal",'ICE')
-    '0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f'
     """
     pt_bytes = [ord(c) for c in plaintext]
     key_bytes = [ord(c) for c in key]
@@ -181,16 +152,10 @@ def get_likely_xor_keysizes(ciphertext, number_of_keysizes=1):
 
 def break_repeating_key_xor(ciphertext):
     """Try to break a ciphertext encrypted with a repeating key XOR
-
-    This is the solution to Set 1 Challenge 6
-
     ARGS:
         ciphertext: Attempt to decrypt this ciphertext
     RETURNS:
         The recovered plaintext or None on failure
-
-    >>> break_repeating_key_xor(open('test_data/1_6.txt','r').read().decode('base64'))[:83]
-    "I'm back and I'm ringin' the bell \\nA rockin' on the mike while the fly girls yell \\n"
     """
 
     # Get the 4 most likely keysizes. The first most likely keysize it probably the
@@ -227,18 +192,12 @@ def break_repeating_key_xor(ciphertext):
 
 def aes_ecb(data, key, op='decrypt'):
     """Encrypt or decrypt a string using AES ECB
-
-    This is the solution to Set 1 Challenge 7
-
     ARGS:
         data: The data to encrypt or decrypt
         key: The AES key to decrypt with
         op: The operation to perform ('decrypt' or 'encrypt')
     RETURNS:
         The AES-128 ECB decrypted plaintext
-
-    >>> aes_ecb(open('test_data/1_7.txt','r').read().decode('base64'), 'YELLOW SUBMARINE')[:66]
-    "I'm back and I'm ringin' the bell \\nA rockin' on the mike while the"
     """
     if op == 'decrypt':
         cipher_op = 0
@@ -253,16 +212,10 @@ def aes_ecb(data, key, op='decrypt'):
 
 def detect_aes_ecb(hexstring_list):
     """Determine if any hexstrings provided have been encrypted with AES 128 ECB
-
-    This is the solution to Set 1 Challenge 8
-
     ARGS:
         hexstring_list: A list of strings to search for AES 128 ECB encrypted blocks
     RETURNS:
         A list of indices of strings that are likely encrypted with AES 128 ECB
-
-    >>> detect_aes_ecb(open('test_data/1_8.txt','r').read().splitlines())
-    [132]
     """
     indexes_that_are_aes_ecb = []
 
@@ -279,8 +232,3 @@ def detect_aes_ecb(hexstring_list):
             indexes_that_are_aes_ecb.append(i)
 
     return indexes_that_are_aes_ecb
-
-if __name__ == '__main__':
-    # Run all of the test vectors in the docstrings pulled from http://cryptopals.com
-    import doctest
-    doctest.testmod(verbose=True)
