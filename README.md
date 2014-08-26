@@ -4,6 +4,8 @@ cryptochallenges
 Solutions to the http://cryptopals.com challenges
 
 ##To Run: 
-python setN.py
+```py.test cryptochallenges```
 
-The offical test vectors are run as docstring tests.
+##Dependencies
+pytest (http://pytest.org)  
+M2Crypto (https://github.com/M2Crypto/M2Crypto)
