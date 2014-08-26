@@ -1,4 +1,7 @@
 import set1
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 
 def test_hex_to_base64():
@@ -21,7 +24,7 @@ def test_single_byte_xor_break():
 
 def test_detect_single_char_xor():
     """ Set 1, Challenge 4 """
-    assert set1.detect_single_char_xor(open('tests/test_data/1_4.txt', 'r').read().splitlines()) == 'Now that the party is jumping'
+    assert set1.detect_single_char_xor(open(SCRIPT_DIR + 'test_data/1_4.txt', 'r').read().splitlines()) == 'Now that the party is jumping'
 
 
 def test_repeating_key_xor_encrypt():
@@ -32,16 +35,16 @@ def test_repeating_key_xor_encrypt():
 
 def test_break_repeating_key_xor():
     """ Set 1, Challenge 6 """
-    assert (set1.break_repeating_key_xor(open('tests/test_data/1_6.txt','r').read().decode('base64'))[:83]
+    assert (set1.break_repeating_key_xor(open(SCRIPT_DIR + 'test_data/1_6.txt', 'r').read().decode('base64'))[:83]
             == "I'm back and I'm ringin' the bell \nA rockin' on the mike while the fly girls yell \n")
 
 
 def test_aes_ecb():
     """ Set 1, Challenge 7 """
-    assert (set1.aes_ecb(open('tests/test_data/1_7.txt', 'r').read().decode('base64'), 'YELLOW SUBMARINE')[:66]
+    assert (set1.aes_ecb(open(SCRIPT_DIR + 'test_data/1_7.txt', 'r').read().decode('base64'), 'YELLOW SUBMARINE')[:66]
             == "I'm back and I'm ringin' the bell \nA rockin' on the mike while the")
 
 
 def test_detect_aes_ecb():
     """ Set 1 Challenge 8 """
-    assert set1.detect_aes_ecb(open('tests/test_data/1_8.txt', 'r').read().splitlines()) == [132]
+    assert set1.detect_aes_ecb(open(SCRIPT_DIR + 'test_data/1_8.txt', 'r').read().splitlines()) == [132]
