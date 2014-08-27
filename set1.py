@@ -5,7 +5,6 @@ Author: Clu (notclu@gmail.com)
 """
 
 import string
-import M2Crypto
 from cc_util import hexstring_to_bytelist, chunks, get_hamming_distance
 
 
@@ -168,24 +167,6 @@ def break_repeating_key_xor(ciphertext):
 
     # Unable to find a valid decryption
     return None
-
-
-def aes_ecb(data, key, op='decrypt'):
-    """Encrypt or decrypt a string using AES ECB
-    :param data: The data to encrypt or decrypt
-    :param key: The AES key to decrypt with
-    :param op: The operation to perform ('decrypt' or 'encrypt')
-    :return: The AES-128 ECB decrypted plaintext
-    """
-    if op == 'decrypt':
-        cipher_op = 0
-    elif op == 'encrypt':
-        cipher_op = 1
-    else:
-        raise Exception('Invalid operation')
-
-    ctx = M2Crypto.EVP.Cipher(alg='aes_128_ecb', key=key, iv='\x00', op=cipher_op, padding=0)
-    return ctx.update(data) + ctx.final()
 
 
 def detect_aes_ecb(hexstring_list):

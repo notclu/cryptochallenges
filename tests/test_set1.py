@@ -1,4 +1,5 @@
 import set1
+import crypto_symmetric
 import os
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__)) + '/'
@@ -41,7 +42,8 @@ def test_break_repeating_key_xor():
 
 def test_aes_ecb():
     """ Set 1, Challenge 7 """
-    assert (set1.aes_ecb(open(SCRIPT_DIR + 'test_data/1_7.txt', 'r').read().decode('base64'), 'YELLOW SUBMARINE')[:66]
+    aes_ecb = crypto_symmetric.AESOracle(mode=crypto_symmetric.AesMode.ECB, key='YELLOW SUBMARINE', prepend='', append='')
+    assert (aes_ecb.decrypt(open(SCRIPT_DIR + 'test_data/1_7.txt', 'r').read().decode('base64'))[:66]
             == "I'm back and I'm ringin' the bell \nA rockin' on the mike while the")
 
 
