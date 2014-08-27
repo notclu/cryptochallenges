@@ -18,9 +18,18 @@ def pkcs7_pad(message, block_length):
     :return: The message with PKCS7 padding
     """
     number_of_padding_bytes = block_length - (len(message) % block_length)
+    if number_of_padding_bytes == 0:
+        number_of_padding_bytes = block_length
+
     padding = struct.pack('B', number_of_padding_bytes) * number_of_padding_bytes
 
     return message + padding
+
+
+def remove_pkcs7_padding(message):
+    bytes_of_padding = int(message[-1].encode('hex'), 16)
+
+    return message[:len(message)-bytes_of_padding]
 
 
 def aes_cbc_decrypt(ciphertext, key, iv):
@@ -89,6 +98,19 @@ def encryption_oracle(plaintext, key=None, prepend=None, append=None, mode=None)
         raise Exception('Invalid block mode')
 
     return ciphertext
+
+
+def decrypt_oracle(ciphertext, key, mode, iv=None
+):
+    if mode == AesMode.CBC:
+        plaintext = aes_cbc_decrypt(ciphertext, key, iv)
+    elif mode == AesMode.ECB:
+        # ecb
+        plaintext = set1.aes_ecb(ciphertext, key, op='decrypt')
+    else:
+        raise Exception('Invalid block mode')
+
+    return remove_pkcs7_padding(plaintext)
 
 
 class AesMode(object):
@@ -219,3 +241,21 @@ def break_ecb_encryption(oracle):
                 raise
 
     return plaintext
+
+
+def break_encrypted_profile(profile_oracle):
+    """Break an encrypted profile oracle by setting role = admin
+    :param profile_oracle: An oracle to generate encrypted profiles (in the form generate by cc_util.profile_for)
+    :return: A ciphertext with the variable role=admin
+    """
+    # Pad with A's to get admin into the start of the second block
+    admin_enc = profile_oracle('A' * 10 + 'admin')
+
+    # The email must be 20 Bytes shorter than a block boundary in order to line up role=
+    user_enc = profile_oracle('a_longer_email@mydomain.com')
+
+    # Add a full padding block to the end so we can truncate the role=user and still decrypt this properly
+    padding_block = profile_oracle('A'*9)[-16:]
+
+    return user_enc[:48] + admin_enc[16:32] + padding_block
+

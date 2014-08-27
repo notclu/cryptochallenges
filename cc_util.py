@@ -4,6 +4,9 @@ Crypto Challenges Util Functions
 Author: Clu (notclu@gmail.com)
 """
 
+import urlparse
+import urllib
+
 
 def chunks(data, chunk_size, adv=None):
     """ Yield successive chunk_size'd chunks from data.
@@ -55,3 +58,13 @@ def string_xor(a, b):
 
 def round_down(x, base):
     return x - (x % base)
+
+
+def key_value_parser(key_value_string):
+    return dict((key, value[0]) for key, value in urlparse.parse_qs(key_value_string).items())
+
+
+def profile_for(email):
+    userdict = [('email', email), ('uid', 10), ('role', 'user')]
+
+    return urllib.urlencode(userdict)

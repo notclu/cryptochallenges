@@ -15,3 +15,12 @@ def test_get_hamming_distance():
 
 def test_string_xor():
     assert cc_util.string_xor('\x0A\x0B\x0C\x0D', 'abcd') == 'kioi'
+
+
+def test_key_value_parser():
+    assert cc_util.key_value_parser('foo=bar&baz=qux&zap=zazzle') == {'foo':'bar', 'baz':'qux', 'zap':'zazzle'}
+
+
+def test_profile_for():
+    assert cc_util.profile_for('foo@bar.com') == 'email=foo%40bar.com&uid=10&role=user'
+    assert cc_util.profile_for('foo@bar.com&role=admin') == 'email=foo%40bar.com%26role%3Dadmin&uid=10&role=user'

@@ -1,4 +1,5 @@
 import set2
+import cc_util
 import os
 from functools import partial
 
@@ -37,3 +38,33 @@ def test_break_ecb_encryption():
     oracle = partial(set2.encryption_oracle, key=os.urandom(16), prepend='', append=unknown_string, mode=set2.AesMode.ECB)
 
     assert set2.break_ecb_encryption(oracle) == unknown_string
+
+
+def generate_encrypted_profile(email, enc_oracle):
+    encoded_profile = cc_util.profile_for(email)
+
+    return enc_oracle(encoded_profile)
+
+
+def decrypt_and_decode_profile(ciphertext, decryption_oracle):
+    decrypted_profile = decryption_oracle(ciphertext)
+
+    return cc_util.key_value_parser(decrypted_profile)
+
+
+def test_break_encrypted():
+    """ Set 2, Challenge 13 """
+    key = os.urandom(16)
+
+    enc_oracle = partial(set2.encryption_oracle, key=key, mode=set2.AesMode.ECB, prepend='', append='')
+    dec_oracle = partial(set2.decrypt_oracle, key=key, mode=set2.AesMode.ECB)
+
+    gen_profile = partial(generate_encrypted_profile, enc_oracle=enc_oracle)
+    dec_profile = partial(decrypt_and_decode_profile, decryption_oracle=dec_oracle)
+
+    # Make sure our test setup is working
+    assert dec_profile(gen_profile('me@somewhere.com')) == {'email': 'me@somewhere.com', 'uid': '10', 'role': 'user'}
+
+    # Run the real test
+    assert dec_profile(set2.break_encrypted_profile(gen_profile)) == {'email': 'a_longer_email@mydomain.com', 'uid': '10', 'role': 'admin'}
+
