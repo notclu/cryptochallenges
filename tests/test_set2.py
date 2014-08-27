@@ -71,3 +71,13 @@ def test_break_encrypted():
     # Run the real test
     assert dec_profile(set2.break_encrypted_profile(gen_profile)) == {'email': 'a_longer_email@mydomain.com', 'uid': '10', 'role': 'admin'}
 
+def test_break_ecb_prefix_encryption():
+    """ Set 2, Challenge 14 """
+    unknown_string = ('Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg'
+                      'aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq'
+                      'dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg'
+                      'YnkK').decode('base64')
+
+    aes_ecb = AESOracle(key=os.urandom(16), append=unknown_string, mode=AesMode.ECB)
+
+    assert set2.break_ecb_encryption(aes_ecb.encrypt) == unknown_string

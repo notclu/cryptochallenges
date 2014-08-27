@@ -5,7 +5,7 @@ Author: Clu (notclu@gmail.com)
 """
 
 import set1
-from cc_util import round_down
+from cc_util import round_down, chunks
 from crypto_symmetric import AesMode, pkcs7_pad
 
 
@@ -95,6 +95,26 @@ def brute_force_ecb_padding(plaintext, block_size, oracle):
     return None
 
 
+def get_no_prefix_oracle(oracle, block_size):
+    # We may have a random number of bytes prepended to our string. We need to add bytes until we start a new block
+    # that we have full control of
+    for i in xrange(0, 16):
+        blocks = list(chunks(oracle('A' * i + 'B' * 32), block_size))
+
+        for j, block in enumerate(blocks):
+            try:
+                if block == blocks[j+1]:
+                    index_of_first_controlled_block = j * block_size
+                    number_of_padding_bytes = i
+            except IndexError:
+                break
+
+    def no_prefix_oracle(plaintext):
+        return oracle('B' * number_of_padding_bytes + plaintext)[index_of_first_controlled_block:]
+
+    return no_prefix_oracle
+
+
 def break_ecb_encryption(oracle):
     """Break ECB encryption with a chosen plaintext attack
     :param oracle: ECB encryption oracle that encrypts AES-128-ECB(your-string || unknown-string, random-key)
@@ -105,6 +125,8 @@ def break_ecb_encryption(oracle):
 
     if mode != AesMode.ECB:
         raise Exception('Oracle mode != ECB')
+
+    oracle = get_no_prefix_oracle(oracle, block_size)
 
     total_length = len(oracle(''))
 
