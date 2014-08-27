@@ -13,6 +13,7 @@ from cc_util import chunks, string_xor
 
 
 class AESOracle(object):
+    """Helper class for generating AES encryption/decryption oracles"""
     def __init__(self, mode, key=None, prepend=None, append=None):
         key = os.urandom(16) if key is None else key
 
@@ -73,6 +74,10 @@ def pkcs7_pad(message, block_length):
 
 
 def remove_pkcs7_padding(message):
+    """Remove pkcs7 padding from a message
+    :param message: Message to remove padding from
+    :return: message with padding removed
+    """
     bytes_of_padding = int(message[-1].encode('hex'), 16)
 
     return message[:len(message)-bytes_of_padding]
