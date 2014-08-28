@@ -44,23 +44,22 @@ def detect_oracle_block_size(oracle):
     return None
 
 
-def get_decryption_oracle(oracle, block_size, short_input):
+def get_decryption_oracle(oracle, short_input, block_size):
     """Derive a decryption oracle for the last byte in a block
     :param oracle: Encryption oracle to submit plaintexts to
     :param block_size: Block size of the encryption oracle
     :param short_input: A plaintext to encrypt that is one byte smaller than a block boundary
     :return: A dictionary mapping all possible encryptions of (plaintext + X) and the plaintext X
     """
-    assert ((len(short_input) + 1) % block_size == 0)
+    assert (len(short_input) == block_size-1)
 
     decrypt_oracle = {}
 
     for i in xrange(0, 255):
         plaintext = short_input + chr(i)
-        current_block_start = len(plaintext) - block_size
 
         ciphertext = oracle(plaintext)
-        ciphertext = ciphertext[current_block_start:current_block_start + block_size]
+        ciphertext = ciphertext[:block_size]
 
         decrypt_oracle[ciphertext] = chr(i)
 
@@ -126,20 +125,20 @@ def break_ecb_encryption(oracle):
     if mode != AesMode.ECB:
         raise Exception('Oracle mode != ECB')
 
+    # Account for oracles that prepend data
     oracle = get_no_prefix_oracle(oracle, block_size)
 
     total_length = len(oracle(''))
 
-    plaintext = ''
+    plaintext = 'A' * 15
 
     for i in xrange(total_length):
+        decrypt_oracle = get_decryption_oracle(oracle, plaintext[-15:], block_size)
+
+        current_block_base = round_down(i, block_size)
         input_pad = 'A' * (block_size - (i % block_size) - 1)
-        short_input = input_pad + plaintext
-        current_block_start = round_down(len(short_input), block_size)
 
-        decrypt_oracle = get_decryption_oracle(oracle, block_size, short_input)
-
-        ciphertext = oracle(input_pad)[current_block_start:current_block_start + block_size]
+        ciphertext = oracle(input_pad)[current_block_base:current_block_base+block_size]
 
         try:
             plaintext += decrypt_oracle[ciphertext]
@@ -147,6 +146,8 @@ def break_ecb_encryption(oracle):
             # If we're on the last block we will start running into problems with changing padding. Just brute force
             # the padding bytes.
             if (total_length - i) < block_size:
+                # Drop the A's added to the plaintext that allowed us to brute force the first block
+                plaintext = plaintext[15:]
                 plaintext = brute_force_ecb_padding(plaintext, block_size, oracle)
                 break
             else:
