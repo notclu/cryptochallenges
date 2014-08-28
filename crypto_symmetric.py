@@ -14,12 +14,15 @@ from cc_util import chunks, string_xor
 
 class AESOracle(object):
     """Helper class for generating AES encryption/decryption oracles"""
-    def __init__(self, mode, key=None, prepend=None, append=None):
+    def __init__(self, mode, key=None, prepend=None, append=None, encode_fn=None, decode_fn=None):
         key = os.urandom(16) if key is None else key
 
         bytes_to_add = random.randint(5, 10)
         self.prepend = '\xAA' * bytes_to_add if prepend is None else prepend
         self.append = '\xAA' * bytes_to_add if append is None else append
+
+        self.encode_fn = encode_fn
+        self.decode_fn = decode_fn
 
         self.mode = mode
 
@@ -36,6 +39,11 @@ class AESOracle(object):
             raise Exception('Invalid block mode')
 
     def encrypt(self, plaintext, iv=None):
+        try:
+            plaintext = self.encode_fn(plaintext)
+        except TypeError:
+            pass
+
         plaintext = self.prepend + plaintext + self.append
         plaintext = pkcs7_pad(plaintext, 16)
 
@@ -43,12 +51,27 @@ class AESOracle(object):
 
         iv = os.urandom(16) if iv is None else iv
 
-        return self.encrypt_fn(plaintext, iv=iv)
+        ciphertext = self.encrypt_fn(plaintext, iv=iv)
+
+        if self.mode == AesMode.CBC:
+            return ciphertext, iv
+        else:
+            return ciphertext
 
     def decrypt(self, ciphertext, iv=None):
+        if self.mode == AesMode.CBC:
+            assert iv is not None
+
         plaintext = self.decrypt_fn(ciphertext, iv=iv)
 
-        return remove_pkcs7_padding(plaintext)
+        plaintext = remove_pkcs7_padding(plaintext)
+
+        try:
+            plaintext = self.decode_fn(plaintext)
+        except TypeError:
+            pass
+
+        return plaintext
 
 
 class AesMode(object):

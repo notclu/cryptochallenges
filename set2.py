@@ -171,3 +171,8 @@ def break_encrypted_profile(profile_oracle):
 
     return user_enc[:48] + admin_enc[16:32] + padding_block
 
+
+def cbc_bitflipping_attack(encrypt_oracle):
+    ciphertext, iv = encrypt_oracle(';admin=true')
+
+    return ciphertext, iv
