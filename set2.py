@@ -5,7 +5,7 @@ Author: Clu (notclu@gmail.com)
 """
 
 import set1
-from cc_util import round_down, chunks
+from cc_util import round_down, chunks, string_xor
 from crypto_symmetric import AesMode, pkcs7_pad
 
 
@@ -172,7 +172,36 @@ def break_encrypted_profile(profile_oracle):
     return user_enc[:48] + admin_enc[16:32] + padding_block
 
 
+def cbc_xor_bitflip(ciphertext, pos,  plaintext, desired_string):
+    """ Perform a CBC XOR bitflip to modify a ciphertext so that it decrypts to a desired value
+    :param ciphertext: Ciphertext to modify
+    :param pos: Position in the ciphertext to modify
+    :param plaintext: Known plaintext at pos
+    :param desired_string: Desired plaintext at pos
+    :return: Modified ciphertext that will decrypt to the desired string at the desired position
+    """
+    ciphertext = [c for c in ciphertext]
+    new_ct = []
+
+    for pt, ct, desired in zip(plaintext, ciphertext[pos:], desired_string):
+        new_ct.append(chr((ord(pt) ^ ord(ct)) ^ ord(desired)))
+
+    ciphertext[pos:pos+len(new_ct)] = new_ct
+
+    return ''.join(ciphertext)
+
+
 def cbc_bitflipping_attack(encrypt_oracle):
+    """ Solution to challenge 16
+    :param encrypt_oracle: Encryption/Encoding oracle for challenge 16
+    :return: A ciphertext that will decrypt/decode to admin=true
+    """
     ciphertext, iv = encrypt_oracle(';admin=true')
 
-    return ciphertext, iv
+    # The prepended data is the first two blocks.
+    # That means the quoted semicolon will be the first 3 Bytes of the 3 block
+
+    ciphertext = cbc_xor_bitflip(ciphertext, 16, '%3B', 'AA;')
+    ciphertext = cbc_xor_bitflip(ciphertext, 24, '%3Dtru', '=true;')
+
+    return ''.join(ciphertext), iv

@@ -84,12 +84,15 @@ def test_remove_pkcs7_padding():
 
 def test_cbc_bitflipping_attack():
     """ Set 2, Challenge 16 """
-    def split_by_semi(text):
+    def parse_by_semi(text):
+        print text
+        print text.split(';')
         return [key_value_parser(s) for s in text.split(';')]
 
     aes_cbc = AESOracle(key=os.urandom(16), mode=AesMode.CBC,
                         prepend='comment1=cooking%20MCs;userdata=', append=';comment2=%20like%20a%20pound%20of%20bacon',
-                        encode_fn=quote, decode_fn=split_by_semi)
+                        encode_fn=quote, decode_fn=parse_by_semi)
 
     ciphertext, iv = set2.cbc_bitflipping_attack(aes_cbc.encrypt)
+
     assert {'admin': 'true'} in aes_cbc.decrypt(ciphertext, iv)
