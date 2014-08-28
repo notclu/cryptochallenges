@@ -1,6 +1,7 @@
 import set2
 import os
-from crypto_symmetric import pkcs7_pad, AesMode, AESOracle
+import pytest
+from crypto_symmetric import pkcs7_pad, AesMode, AESOracle, remove_pkcs7_padding
 from cc_util import profile_for, key_value_parser
 from functools import partial
 
@@ -71,6 +72,7 @@ def test_break_encrypted():
     # Run the real test
     assert dec_profile(set2.break_encrypted_profile(gen_profile)) == {'email': 'a_longer_email@mydomain.com', 'uid': '10', 'role': 'admin'}
 
+
 def test_break_ecb_prefix_encryption():
     """ Set 2, Challenge 14 """
     unknown_string = ('Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg'
@@ -81,3 +83,14 @@ def test_break_ecb_prefix_encryption():
     aes_ecb = AESOracle(key=os.urandom(16), append=unknown_string, mode=AesMode.ECB)
 
     assert set2.break_ecb_encryption(aes_ecb.encrypt) == unknown_string
+
+
+def test_remove_pkcs7_padding():
+    """ Set 2, Challenge 15 """
+    assert remove_pkcs7_padding('ICE ICE BABY\x04\x04\x04\x04') == 'ICE ICE BABY'
+
+    with pytest.raises(Exception):
+        remove_pkcs7_padding('ICE ICE BABY\x05\x05\x05\x05')
+
+    with pytest.raises(Exception):
+        remove_pkcs7_padding('ICE ICE BABY\x01\x02\x03\x04')

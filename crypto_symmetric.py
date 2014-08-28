@@ -80,7 +80,12 @@ def remove_pkcs7_padding(message):
     """
     bytes_of_padding = int(message[-1].encode('hex'), 16)
 
-    return message[:len(message)-bytes_of_padding]
+    padding = message[-bytes_of_padding:]
+
+    if padding == struct.pack('B', bytes_of_padding) * bytes_of_padding:
+        return message[:len(message)-bytes_of_padding]
+    else:
+        raise Exception('Invalid padding')
 
 
 def aes_ecb_encrypt(plaintext, key, iv=None):
