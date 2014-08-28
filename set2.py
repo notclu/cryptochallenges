@@ -130,10 +130,10 @@ def break_ecb_encryption(oracle):
 
     total_length = len(oracle(''))
 
-    plaintext = 'A' * 15
+    plaintext = 'A' * (block_size-1)
 
     for i in xrange(total_length):
-        decrypt_oracle = get_decryption_oracle(oracle, plaintext[-15:], block_size)
+        decrypt_oracle = get_decryption_oracle(oracle, plaintext[-(block_size-1):], block_size)
 
         current_block_base = round_down(i, block_size)
         input_pad = 'A' * (block_size - (i % block_size) - 1)
