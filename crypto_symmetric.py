@@ -12,6 +12,10 @@ from functools import partial
 from cc_util import chunks, string_xor
 
 
+class PaddingException(Exception):
+    pass
+
+
 class AESOracle(object):
     """Helper class for generating AES encryption/decryption oracles"""
     def __init__(self, mode, key=None, prepend=None, append=None, encode_fn=None, decode_fn=None):
@@ -108,7 +112,7 @@ def remove_pkcs7_padding(message):
     if padding == struct.pack('B', bytes_of_padding) * bytes_of_padding:
         return message[:len(message)-bytes_of_padding]
     else:
-        raise Exception('Invalid padding')
+        raise PaddingException('Invalid padding')
 
 
 def aes_ecb_encrypt(plaintext, key, iv=None):

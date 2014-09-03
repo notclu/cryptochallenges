@@ -4,21 +4,22 @@ Crypto Challenges Set 3 Tests
 Author: Clu (notclu@gmail.com)
 """
 
-from crypto_symmetric import AESOracle, AesMode
+from crypto_symmetric import AESOracle, AesMode, PaddingException
 import os
 import random
 import set3
 
 
 def gen_padding_check(oracle):
-    def padding_check_fn(ciphertext):
+    def padding_check_fn(ciphertext, iv):
         try:
-            oracle.decrypt(ciphertext)
+            oracle.decrypt(ciphertext, iv=iv)
             return True
-        except Exception:
+        except PaddingException:
             return False
 
     return padding_check_fn
+
 
 def test_cbc_padding_oracle():
     """ Set 3, Challenge 17 """
@@ -35,8 +36,9 @@ def test_cbc_padding_oracle():
 
     cbc_oracle = AESOracle(mode=AesMode.CBC, key=os.urandom(16), prepend='', append='')
 
-    random_string = test_strings[random.randint(0,len(test_strings))].decode('base64')
+    random_string = test_strings[random.randint(0, len(test_strings)-1)].decode('base64')
 
-    ciphertext = cbc_oracle.encrypt(random_string)
+    ciphertext, iv = cbc_oracle.encrypt(random_string)
+    padding_check_fn = gen_padding_check(cbc_oracle)
 
-    assert set3.cbc_padding_oracle(ciphertext, gen_padding_check(cbc_oracle)) == random_string
+    assert set3.cbc_padding_oracle(ciphertext, iv, padding_check_fn) == random_string
