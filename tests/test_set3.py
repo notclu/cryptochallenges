@@ -6,7 +6,6 @@ Author: Clu (notclu@gmail.com)
 
 from crypto_symmetric import AESOracle, AesMode, PaddingException
 import os
-import random
 import set3
 
 
@@ -36,9 +35,10 @@ def test_cbc_padding_oracle():
 
     cbc_oracle = AESOracle(mode=AesMode.CBC, key=os.urandom(16), prepend='', append='')
 
-    random_string = test_strings[random.randint(0, len(test_strings)-1)].decode('base64')
-
-    ciphertext, iv = cbc_oracle.encrypt(random_string)
     padding_check_fn = gen_padding_check(cbc_oracle)
 
-    assert set3.cbc_padding_oracle(ciphertext, iv, padding_check_fn) == random_string
+    for test_string in test_strings:
+        test_string = test_string.decode('base64')
+        ciphertext, iv = cbc_oracle.encrypt(test_string)
+
+        assert set3.cbc_padding_oracle(ciphertext, iv, padding_check_fn) == test_string
