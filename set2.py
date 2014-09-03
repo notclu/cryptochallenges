@@ -5,7 +5,7 @@ Author: Clu (notclu@gmail.com)
 """
 
 import set1
-from cc_util import round_down, chunks, string_xor
+from cc_util import round_down, chunks
 from crypto_symmetric import AesMode, pkcs7_pad
 
 
