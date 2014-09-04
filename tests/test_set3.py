@@ -62,3 +62,7 @@ def test_aes_ctr():
     ctr_oracle = AESOracle(mode=AesMode.CTR, key='YELLOW SUBMARINE', prepend='', append='')
 
     assert ctr_oracle.decrypt(test_string, simple_nonce_generator()) == "Yo, VIP Let's kick it Ice, Ice, baby Ice, Ice, baby "
+
+    my_test = 'A' * 22
+
+    assert ctr_oracle.decrypt(ctr_oracle.encrypt(my_test, simple_nonce_generator()), simple_nonce_generator()) == my_test

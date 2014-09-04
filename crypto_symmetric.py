@@ -52,9 +52,10 @@ class AESOracle(object):
             pass
 
         plaintext = self.prepend + plaintext + self.append
-        plaintext = pkcs7_pad(plaintext, 16)
 
-        assert (len(plaintext) % 16 == 0)
+        if self.mode != AesMode.CTR:
+            plaintext = pkcs7_pad(plaintext, 16)
+            assert (len(plaintext) % 16 == 0)
 
         return self.encrypt_fn(plaintext, self.key,  *args, **kwargs)
 
@@ -193,7 +194,8 @@ def aes_ctr_encrypt(plaintext, key, nonce_generator):
     ciphertext = ''
 
     for pt_block in chunks(plaintext, 16):
-        key_steam = aes_ecb_encrypt(nonce_generator(), key)
+        nonce = nonce_generator.next()
+        key_steam = aes_ecb_encrypt(nonce, key)
 
         ciphertext += string_xor(pt_block, key_steam)
 
