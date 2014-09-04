@@ -19,7 +19,7 @@ class PaddingException(Exception):
 class AESOracle(object):
     """Helper class for generating AES encryption/decryption oracles"""
     def __init__(self, mode, key=None, prepend=None, append=None, encode_fn=None, decode_fn=None):
-        key = os.urandom(16) if key is None else key
+        self.key = os.urandom(16) if key is None else key
 
         bytes_to_add = random.randint(5, 10)
         self.prepend = '\xAA' * bytes_to_add if prepend is None else prepend
@@ -31,18 +31,21 @@ class AESOracle(object):
         self.mode = mode
 
         if mode == AesMode.CBC:
-            self.encrypt_fn = partial(aes_cbc_encrypt, key=key)
-            self.decrypt_fn = partial(aes_cbc_decrypt, key=key)
+            self.encrypt_fn = aes_cbc_encrypt
+            self.decrypt_fn = aes_cbc_decrypt
         elif mode == AesMode.ECB:
-            self.encrypt_fn = partial(aes_ecb_encrypt, key=key)
-            self.decrypt_fn = partial(aes_ecb_decrypt, key=key)
+            self.encrypt_fn = aes_ecb_encrypt
+            self.decrypt_fn = aes_ecb_decrypt
+        elif mode == AesMode.CTR:
+            self.encrypt_fn = aes_ctr_encrypt
+            self.decrypt_fn = aes_ctr_decrypt
         elif mode == AesMode.Random:
-            self.encrypt_fn = partial(aes_rand_mode_encrypt, key=key)
-            self.decrypt_fn = partial(aes_rand_mode_decrypt, key=key)
+            self.encrypt_fn = aes_rand_mode_encrypt
+            self.decrypt_fn = None
         else:
             raise Exception('Invalid block mode')
 
-    def encrypt(self, plaintext, iv=None):
+    def encrypt(self, plaintext, *args, **kwargs):
         try:
             plaintext = self.encode_fn(plaintext)
         except TypeError:
@@ -53,22 +56,13 @@ class AESOracle(object):
 
         assert (len(plaintext) % 16 == 0)
 
-        iv = os.urandom(16) if iv is None else iv
+        return self.encrypt_fn(plaintext, self.key,  *args, **kwargs)
 
-        ciphertext = self.encrypt_fn(plaintext, iv=iv)
+    def decrypt(self, ciphertext, *args, **kwargs):
+        plaintext = self.decrypt_fn(ciphertext, self.key, *args, **kwargs)
 
-        if self.mode == AesMode.CBC:
-            return ciphertext, iv
-        else:
-            return ciphertext
-
-    def decrypt(self, ciphertext, iv=None):
-        if self.mode == AesMode.CBC:
-            assert iv is not None
-
-        plaintext = self.decrypt_fn(ciphertext, iv=iv)
-
-        plaintext = remove_pkcs7_padding(plaintext)
+        if self.mode != AesMode.CTR:
+            plaintext = remove_pkcs7_padding(plaintext)
 
         try:
             plaintext = self.decode_fn(plaintext)
@@ -82,7 +76,8 @@ class AesMode(object):
     """An enumeration for AES block modes"""
     ECB = 0
     CBC = 1
-    Random = 2
+    CTR = 2
+    Random = 3
 
 
 def pkcs7_pad(message, block_length):
@@ -115,11 +110,11 @@ def remove_pkcs7_padding(message):
         raise PaddingException('Invalid padding')
 
 
-def aes_ecb_encrypt(plaintext, key, iv=None):
+def aes_ecb_encrypt(plaintext, key):
     return aes_ecb(plaintext, key, op='encrypt')
 
 
-def aes_ecb_decrypt(ciphertext, key, iv=None):
+def aes_ecb_decrypt(ciphertext, key):
     return aes_ecb(ciphertext, key, op='decrypt')
 
 
@@ -160,13 +155,15 @@ def aes_cbc_decrypt(ciphertext, key, iv):
     return plaintext
 
 
-def aes_cbc_encrypt(plaintext, key, iv):
+def aes_cbc_encrypt(plaintext, key, iv=None):
     """ Perform AES CBC encryption, adding PKCS 7 padding as needed
     :param plaintext: The data to encrypt
     :param key: The AES key to use
     :param iv: The initialization vector
     :return: The resulting ciphertext
     """
+    iv = os.urandom(16) if iv is None else iv
+
     xor_block = iv
     ciphertext = ''
 
@@ -175,18 +172,37 @@ def aes_cbc_encrypt(plaintext, key, iv):
         ciphertext += ct_block
         xor_block = ct_block
 
+    return ciphertext, iv
+
+
+def aes_ctr_decrypt(ciphertext, key, nonce_generator):
+
+    plaintext = ''
+
+    for ct_block in chunks(ciphertext, 16):
+        nonce = nonce_generator.next()
+        key_steam = aes_ecb_encrypt(nonce, key)
+
+        plaintext += string_xor(ct_block, key_steam)
+
+    return plaintext
+
+
+def aes_ctr_encrypt(plaintext, key, nonce_generator):
+
+    ciphertext = ''
+
+    for pt_block in chunks(plaintext, 16):
+        key_steam = aes_ecb_encrypt(nonce_generator(), key)
+
+        ciphertext += string_xor(pt_block, key_steam)
+
     return ciphertext
 
 
-def aes_rand_mode_encrypt(plaintext, key, iv):
+def aes_rand_mode_encrypt(plaintext, key):
     if random.randint(0, 1) == 0:
-        return aes_cbc_encrypt(plaintext, key, iv)
+        ciphertext, iv = aes_cbc_encrypt(plaintext, key)
+        return ciphertext
     else:
-        return aes_ecb_encrypt(plaintext, key, iv)
-
-
-def aes_rand_mode_decrypt(plaintext, key, iv):
-    if random.randint(0, 1) == 0:
-        return aes_cbc_decrypt(plaintext, key, iv)
-    else:
-        return aes_ecb_decrypt(plaintext, key, iv)
+        return aes_ecb_encrypt(plaintext, key)

@@ -7,6 +7,7 @@ Author: Clu (notclu@gmail.com)
 from crypto_symmetric import AESOracle, AesMode, PaddingException
 import os
 import set3
+import struct
 
 
 def gen_padding_check(oracle):
@@ -42,3 +43,22 @@ def test_cbc_padding_oracle():
         ciphertext, iv = cbc_oracle.encrypt(test_string)
 
         assert set3.cbc_padding_oracle(ciphertext, iv, padding_check_fn) == test_string
+
+
+def simple_nonce_generator():
+    nonce = 0
+    i = 0
+
+    while True:
+        yield struct.pack('<QQ', nonce, i)
+        i += 1
+
+
+def test_aes_ctr():
+    """ Set 3, Challenge 18 """
+
+    test_string = "L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==".decode('base64')
+
+    ctr_oracle = AESOracle(mode=AesMode.CTR, key='YELLOW SUBMARINE', prepend='', append='')
+
+    assert ctr_oracle.decrypt(test_string, simple_nonce_generator()) == "Yo, VIP Let's kick it Ice, Ice, baby Ice, Ice, baby "
