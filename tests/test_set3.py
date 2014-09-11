@@ -9,6 +9,7 @@ import os
 import set3
 import struct
 
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 def gen_padding_check(oracle):
     def padding_check_fn(ciphertext, iv):
@@ -66,3 +67,66 @@ def test_aes_ctr():
     my_test = 'A' * 22
 
     assert ctr_oracle.decrypt(ctr_oracle.encrypt(my_test, simple_nonce_generator()), simple_nonce_generator()) == my_test
+
+
+def test_break_ctr():
+    """ Set 3, Challenge 19 """
+    test_strings = ["SSBoYXZlIG1ldCB0aGVtIGF0IGNsb3NlIG9mIGRheQ=="
+                    "Q29taW5nIHdpdGggdml2aWQgZmFjZXM=",
+                    "RnJvbSBjb3VudGVyIG9yIGRlc2sgYW1vbmcgZ3JleQ==",
+                    "RWlnaHRlZW50aC1jZW50dXJ5IGhvdXNlcy4=",
+                    "SSBoYXZlIHBhc3NlZCB3aXRoIGEgbm9kIG9mIHRoZSBoZWFk",
+                    "T3IgcG9saXRlIG1lYW5pbmdsZXNzIHdvcmRzLA==",
+                    "T3IgaGF2ZSBsaW5nZXJlZCBhd2hpbGUgYW5kIHNhaWQ=",
+                    "UG9saXRlIG1lYW5pbmdsZXNzIHdvcmRzLA==",
+                    "QW5kIHRob3VnaHQgYmVmb3JlIEkgaGFkIGRvbmU=",
+                    "T2YgYSBtb2NraW5nIHRhbGUgb3IgYSBnaWJl",
+                    "VG8gcGxlYXNlIGEgY29tcGFuaW9u",
+                    "QXJvdW5kIHRoZSBmaXJlIGF0IHRoZSBjbHViLA==",
+                    "QmVpbmcgY2VydGFpbiB0aGF0IHRoZXkgYW5kIEk=",
+                    "QnV0IGxpdmVkIHdoZXJlIG1vdGxleSBpcyB3b3JuOg==",
+                    "QWxsIGNoYW5nZWQsIGNoYW5nZWQgdXR0ZXJseTo=",
+                    "QSB0ZXJyaWJsZSBiZWF1dHkgaXMgYm9ybi4=",
+                    "VGhhdCB3b21hbidzIGRheXMgd2VyZSBzcGVudA==",
+                    "SW4gaWdub3JhbnQgZ29vZCB3aWxsLA==",
+                    "SGVyIG5pZ2h0cyBpbiBhcmd1bWVudA==",
+                    "VW50aWwgaGVyIHZvaWNlIGdyZXcgc2hyaWxsLg==",
+                    "V2hhdCB2b2ljZSBtb3JlIHN3ZWV0IHRoYW4gaGVycw==",
+                    "V2hlbiB5b3VuZyBhbmQgYmVhdXRpZnVsLA==",
+                    "U2hlIHJvZGUgdG8gaGFycmllcnM/",
+                    "VGhpcyBtYW4gaGFkIGtlcHQgYSBzY2hvb2w=",
+                    "QW5kIHJvZGUgb3VyIHdpbmdlZCBob3JzZS4=",
+                    "VGhpcyBvdGhlciBoaXMgaGVscGVyIGFuZCBmcmllbmQ=",
+                    "V2FzIGNvbWluZyBpbnRvIGhpcyBmb3JjZTs=",
+                    "SGUgbWlnaHQgaGF2ZSB3b24gZmFtZSBpbiB0aGUgZW5kLA==",
+                    "U28gc2Vuc2l0aXZlIGhpcyBuYXR1cmUgc2VlbWVkLA==",
+                    "U28gZGFyaW5nIGFuZCBzd2VldCBoaXMgdGhvdWdodC4=",
+                    "VGhpcyBvdGhlciBtYW4gSSBoYWQgZHJlYW1lZA==",
+                    "QSBkcnVua2VuLCB2YWluLWdsb3Jpb3VzIGxvdXQu",
+                    "SGUgaGFkIGRvbmUgbW9zdCBiaXR0ZXIgd3Jvbmc=",
+                    "VG8gc29tZSB3aG8gYXJlIG5lYXIgbXkgaGVhcnQs",
+                    "WWV0IEkgbnVtYmVyIGhpbSBpbiB0aGUgc29uZzs=",
+                    "SGUsIHRvbywgaGFzIHJlc2lnbmVkIGhpcyBwYXJ0",
+                    "SW4gdGhlIGNhc3VhbCBjb21lZHk7",
+                    "SGUsIHRvbywgaGFzIGJlZW4gY2hhbmdlZCBpbiBoaXMgdHVybiw=",
+                    "VHJhbnNmb3JtZWQgdXR0ZXJseTo=",
+                    "QSB0ZXJyaWJsZSBiZWF1dHkgaXMgYm9ybi4="]
+
+    ctr_oracle = AESOracle(mode=AesMode.CTR, key='YELLOW SUBMARINE', prepend='', append='')
+
+    def fixed_nonce():
+        while True:
+            yield struct.pack('<QQ', 5, 1)
+
+    test_strings = [s.decode('base64') for s in test_strings]
+    test_ciphertexts = [ctr_oracle.encrypt(pt, fixed_nonce()) for pt in test_strings]
+
+    # There are not enough samples to break this perfectly
+    assert set3.break_repeating_nonce_ctr(test_ciphertexts)[0] == 'i have met them\nAt close of day'
+
+def test_break_ctr_file():
+    """ Set 3, Challenge 20 """
+    with open(SCRIPT_DIR + 'test_data/3_20.txt', 'r') as test_data:
+        ciphertexts = [line.decode('base64') for line in test_data]
+
+    assert set3.break_repeating_nonce_ctr(ciphertexts)[-1] == 'And we outta here / Yo, what happened to peace? / Peace'

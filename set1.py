@@ -114,11 +114,12 @@ def get_likely_xor_keysizes(ciphertext, number_of_keysizes=1):
         key_size_chunks = list(chunks(ciphertext, keysize))
         total_distance = 0
 
+        max_blocks = len(key_size_chunks)-1 if len(key_size_chunks) < 40 else 40
         number_of_blocks = 0
         # If the number of blocks in the average distance calculation is too low
         # we may end up with the wrong keysize. Using 40 blocks seems to give
         # results.
-        for i in xrange(0, 40, 2):
+        for i in xrange(0, max_blocks, 2):
             total_distance += get_hamming_distance(key_size_chunks[i], key_size_chunks[i + 1])
             number_of_blocks += 1
 
@@ -131,15 +132,17 @@ def get_likely_xor_keysizes(ciphertext, number_of_keysizes=1):
     return [i[0] for i in normalized_distances[:number_of_keysizes]]
 
 
-def break_repeating_key_xor(ciphertext):
+def break_repeating_key_xor(ciphertext, keysize=None):
     """Try to break a ciphertext encrypted with a repeating key XOR
     :param ciphertext: Attempt to decrypt this ciphertext
     :return: The recovered plaintext or None on failure
     """
+    best_guess = None
+    best_guess_unprintable = None
 
     # Get the 4 most likely keysizes. The first most likely keysize it probably the
     # correct keysize, but if it is not we can try the next couple
-    keysizes = get_likely_xor_keysizes(ciphertext, 4)
+    keysizes = get_likely_xor_keysizes(ciphertext, 4) if keysize is None else [keysize]
 
     for keysize in keysizes:
         ct_chunks = list(chunks(ciphertext, keysize))
@@ -164,9 +167,17 @@ def break_repeating_key_xor(ciphertext):
 
         if not unprintable_chars:
             return plaintext
+        else:
+            if best_guess is None:
+                best_guess = plaintext
+                best_guess_unprintable = unprintable_chars
+            else:
+                if unprintable_chars < best_guess_unprintable:
+                    best_guess = plaintext
+                    best_guess_unprintable = unprintable_chars
 
-    # Unable to find a valid decryption
-    return None
+    # Unable to find a perfect decryption return the best guess
+    return best_guess
 
 
 def detect_aes_ecb(hexstring_list):

@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append('../')
+
 import set2
 import os
 import pytest

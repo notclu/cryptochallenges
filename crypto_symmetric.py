@@ -8,7 +8,6 @@ import struct
 import random
 import os
 import M2Crypto
-from functools import partial
 from cc_util import chunks, string_xor
 
 

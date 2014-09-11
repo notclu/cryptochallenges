@@ -4,6 +4,7 @@ Crypto Challenges Set 3 (from cryptopals.com)
 Author: Clu (notclu@gmail.com)
 """
 
+from set1 import break_repeating_key_xor
 from cc_util import chunks, string_xor
 from crypto_symmetric import remove_pkcs7_padding
 
@@ -49,3 +50,29 @@ def cbc_padding_oracle(ciphertext, iv, padding_valid_fn):
             break
 
     return remove_pkcs7_padding(pt)
+
+
+def break_repeating_nonce_ctr(ciphertexts):
+    """ Decrypt CTR encrypted ciphertexts that were encrypted with a fixed nonce
+
+    :param ciphertextx: A list of ciphertexts encrypted with a fixed nonce
+    :return: A list of decrypted plaintexts
+    """
+    block_size = 16
+
+    ciphertext = ''.join(ct[:block_size] for ct in ciphertexts)
+
+    guess = list(chunks(break_repeating_key_xor(ciphertext, keysize=block_size), block_size))
+
+    block_keystream = string_xor(guess[0], ciphertexts[0])
+
+    plaintexts = []
+
+    for ct in ciphertexts:
+        plaintext = ''
+        for block in chunks(ct, block_size):
+            plaintext += string_xor(block, block_keystream)
+
+        plaintexts.append(plaintext)
+
+    return plaintexts
